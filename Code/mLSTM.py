@@ -72,4 +72,37 @@ class mLSTM(Recurrent):
 
         if self.dropout_W or self.dropout_U:
             self.uses_learning_phase = True
-        supe
+        super(mLSTM, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        self.input_spec = [InputSpec(shape=input_shape)]
+        input_dim = input_shape[2]
+        self.input_dim = input_dim
+
+        if self.stateful:
+            self.reset_states()
+        else:
+            # initial states: all-zero tensor of shape (output_dim)
+            self.states = [None,None]
+        
+        self.W_y = self.init((input_dim, self.output_dim),
+                           name='{}_W_y'.format(self.name))
+
+        self.W_h = self.init((input_dim, self.output_dim),
+                           name='{}_W_h'.format(self.name))
+
+        self.W = self.init((self.output_dim, 1),
+                           name='{}_W'.format(self.name))
+
+        self.U_r = self.inner_init((self.output_dim, self.output_dim),
+                                 name='{}_U_r'.format(self.name))
+
+        # mLSTM Initializations
+        self.W_i = self.init((self.output_dim + self.output_dim,self.output_dim),
+                            name='{}_W_i'.format(self.name))
+        self.W_f = self.init((self.output_dim + self.output_dim,self.output_dim),
+                            name='{}_W_f'.format(self.name))
+        self.W_o = self.init((self.output_dim + self.output_dim,self.output_dim),
+                            name='{}_W_o'.format(self.name))
+        self.W_c = self.init((self.output_dim + self.output_dim,self.output_dim),
+                            name='{}_W_c'.format(self.name))
