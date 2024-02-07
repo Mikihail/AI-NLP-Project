@@ -105,4 +105,26 @@ class mLSTM(Recurrent):
         self.W_o = self.init((self.output_dim + self.output_dim,self.output_dim),
                             name='{}_W_o'.format(self.name))
         self.W_c = self.init((self.output_dim + self.output_dim,self.output_dim),
-                            name='{}_W_c'.format(self.name))
+                            name='{}_W_c'.format(self.name))  
+
+        self.U_i = self.inner_init((self.output_dim, self.output_dim),
+                                 name='{}_U_i'.format(self.name))
+        self.U_f = self.inner_init((self.output_dim, self.output_dim),
+                                 name='{}_U_f'.format(self.name))
+        self.U_o = self.inner_init((self.output_dim, self.output_dim),
+                                 name='{}_U_o'.format(self.name))
+        self.U_c = self.inner_init((self.output_dim, self.output_dim),
+                                 name='{}_U_c'.format(self.name)) 
+        
+        self.b_i = K.zeros((self.output_dim,), name='{}_b_i'.format(self.name))
+        self.b_f = K.zeros((self.output_dim,), name='{}_b_f'.format(self.name))
+        self.b_o = K.zeros((self.output_dim,), name='{}_b_o'.format(self.name))
+        self.b_c = K.zeros((self.output_dim,), name='{}_b_c'.format(self.name))                                                                                                                                                                                        
+
+        self.regularizers = []
+        if self.W1_regularizer:
+            self.W1_regularizer.set_param(K.concatenate([self.W_y,
+                                                        self.W_h,
+                                                        self.W
+                                                        ]))
+            self.regularizers.appe
