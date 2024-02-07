@@ -127,4 +127,28 @@ class mLSTM(Recurrent):
                                                         self.W_h,
                                                         self.W
                                                         ]))
-            self.regularizers.appe
+            self.regularizers.append(self.W1_regularizer)
+            self.W2_regularizer.set_param(K.concatenate([self.W_i,
+                                                        self.W_f,
+                                                        self.W_o,
+                                                        self.W_c]))
+            self.regularizers.append(self.W2_regularizer)
+        if self.U_regularizer:
+            self.U_regularizer.set_param(K.concatenate([self.U_r,                                                        
+                                                        self.U_i,
+                                                        self.U_f,
+                                                        self.U_o,
+                                                        self.U_c]))
+            self.regularizers.append(self.U_regularizer)
+        if(self.b_regularizer):
+            self.b_regularizer.set_param([self.b_i,
+                                          self.b_f,
+                                          self.b_o,
+                                          self.b_c])
+            self.regularizers.append(self.b_regularizer)
+
+        self.trainable_weights = [self.W_y, self.W_h, self.W,self.W_i,self.W_f,self.W_o,self.W_c,
+                                  self.U_r, self.U_i,self.U_f,self.U_o,self.U_c,
+                                  self.b_i,self.b_f,self.b_o,self.b_c]
+
+        if self.initial_weights i
