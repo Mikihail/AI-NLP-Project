@@ -151,4 +151,42 @@ class mLSTM(Recurrent):
                                   self.U_r, self.U_i,self.U_f,self.U_o,self.U_c,
                                   self.b_i,self.b_f,self.b_o,self.b_c]
 
-        if self.initial_weights i
+        if self.initial_weights is not None:
+            self.set_weights(self.initial_weights)
+            del self.initial_weights
+
+    def reset_states(self):
+        assert self.stateful, 'Layer must be stateful.'
+        input_shape = self.input_spec[0].shape
+        if not input_shape[0]:
+            raise Exception('If a RNN is stateful, a complete ' +
+                            'input_shape must be provided (including batch size).')
+        if hasattr(self, 'states'):
+            K.set_value(self.states[0],
+                        np.zeros((input_shape[0], self.output_dim)))
+        else:
+            self.states = [K.zeros((input_shape[0], self.output_dim))]
+
+    def preprocess_input(self, x):
+        self.Y = x[:,:K.params['xmaxlen'],:]
+        x = x[:,K.params['xmaxlen']:,:]
+        self.precompute_W_y_y = K.dot(self.Y,self.W_y)
+        input_dim = x.shape[2]
+        timesteps = x.shape[1]
+        repeat_len = self.Y.shape[1]
+        return time_distributed_dense(x,self.W_h,input_dim,self.output_dim,timesteps,repeat_len)
+        # return x
+
+    def step(self, x, states):
+        h_tm1 = states[0]
+        c_tm1 = states[1]
+
+        h_tilde = x[:,0,:]
+        L = K.params['xmaxlen']
+        
+        M = K.tanh(self.precompute_W_y_y + x + K.repeat_elements(K.dot(h_tm1, self.U_r).dimshuffle((0,'x',1)),L, axis=1))
+        alpha = K.dot(M, self.W)
+        alpha = K.softmax(alpha[:,:,0]) 
+        alpha = alpha.dimshuffle((0,'x',1))
+        
+  
