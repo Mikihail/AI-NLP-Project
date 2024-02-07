@@ -44,4 +44,32 @@ class mLSTM(Recurrent):
     # Arguments
         output_dim: output_dimensions
         init: weight initialization function.
-       
+            Can be the name of an existing function (str),
+            or a Theano function (see: [initializations](../initializations.md)).
+        inner_init: initialization function of the inner cells.
+        activation: activation function.
+            Can be the name of an existing function (str),
+            or a Theano function (see: [activations](../activations.md)).
+    # Comments:
+        Takes in as input a concatenation of the vectors YH, where Y is the vectors being attended on and
+        H are the vectors on which attention is being applied
+    # References
+        - [REASONING ABOUT ENTAILMENT WITH NEURAL ATTENTION](http://arxiv.org/abs/1509.06664v2)
+    '''
+    def __init__(self, output_dim,
+                 init='glorot_uniform', inner_init='orthogonal',
+                 W_regularizer=None, U_regularizer=None,b_regularizer=None,
+                 dropout_W=0., dropout_U=0., **kwargs):
+        self.output_dim = output_dim
+        self.init = initializations.get(init)
+        self.inner_init = initializations.get(inner_init)
+        self.W1_regularizer = regularizers.get(W_regularizer)
+        self.W2_regularizer = regularizers.get(W_regularizer)
+        self.U_regularizer = regularizers.get(U_regularizer)
+        self.b_regularizer = regularizers.get(b_regularizer)
+
+        self.dropout_W, self.dropout_U = dropout_W, dropout_U
+
+        if self.dropout_W or self.dropout_U:
+            self.uses_learning_phase = True
+        supe
