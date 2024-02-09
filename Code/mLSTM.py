@@ -222,4 +222,18 @@ class mLSTM(Recurrent):
             B_W = [K.dropout(ones, self.dropout_W) for _ in range(3)]
             constants.append(B_W)
         else:
-            constants.append([K.cast_to_floatx(1.) for _ in range(
+            constants.append([K.cast_to_floatx(1.) for _ in range(3)])
+        return constants
+
+    def get_config(self):
+        config = {"output_dim": self.output_dim,
+                  "init": self.init.__name__,
+                  "inner_init": self.inner_init.__name__,
+                  "activation": self.activation.__name__,
+                  "W_regularizer": self.W_regularizer.get_config() if self.W_regularizer else None,
+                  "U_regularizer": self.U_regularizer.get_config() if self.U_regularizer else None,
+                  "b_regularizer": self.b_regularizer.get_config() if self.b_regularizer else None,
+                  "dropout_W": self.dropout_W,
+                  "dropout_U": self.dropout_U}
+        base_config = super(SimpleRNN, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
