@@ -189,4 +189,37 @@ class mLSTM(Recurrent):
         alpha = K.softmax(alpha[:,:,0]) 
         alpha = alpha.dimshuffle((0,'x',1))
         
-  
+        output = T.batched_dot(alpha,self.Y) 
+        output = output[:,0,:]
+        
+        xt = K.concatenate([h_tilde,output],axis = 1)
+
+        it = K.sigmoid( K.dot(xt,self.W_i) + K.dot(h_tilde,self.U_i) + self.b_i )
+        ft = K.sigmoid(K.dot(xt,self.W_f) + K.dot(h_tilde,self.U_f) + self.b_f)
+        ot = K.sigmoid(K.dot(xt,self.W_o) + K.dot(h_tilde,self.U_o) + self.b_o)
+        c_tilde_t = K.dot(xt,self.W_c) + K.dot(h_tilde,self.U_c) + self.b_c
+        c_t = ft * c_tm1 + it*K.tanh( c_tilde_t )
+
+        h_t = ot * K.tanh(c_t)
+
+        return h_t, [h_t,c_t]
+
+    def get_constants(self, x):
+        constants = []
+        if 0 < self.dropout_U < 1:
+            ones = K.ones_like(K.reshape(x[:, 0, 0], (-1, 1)))
+            ones = K.concatenate([ones] * self.output_dim, 1)
+            B_U = [K.dropout(ones, self.dropout_U) for _ in range(2)]
+            constants.append(B_U)
+        else:
+            constants.append([K.cast_to_floatx(1.) for _ in range(2)])
+
+        if self.consume_less == 'cpu' and 0 < self.dropout_W < 1:
+            input_shape = self.input_spec[0].shape
+            input_dim = input_shape[-1]
+            ones = K.ones_like(K.reshape(x[:, 0, 0], (-1, 1)))
+            ones = K.concatenate([ones] * input_dim, 1)
+            B_W = [K.dropout(ones, self.dropout_W) for _ in range(3)]
+            constants.append(B_W)
+        else:
+            constants.append([K.cast_to_floatx(1.) for _ in range(
