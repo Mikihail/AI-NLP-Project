@@ -89,4 +89,48 @@ def build_model(opts, verbose=False):
 
     forward = LSTM(opts.lstm_units,return_sequences=True)(d_emb)
     backward = LSTM(opts.lstm_units,return_sequences=True,go_backwards=True)(d_emb)
-    forward_backward = merge([forward,backward],m
+    forward_backward = merge([forward,backward],mode='concat',concat_axis=2)
+    dropout = Dropout(0.1)(forward_backward)
+
+    # h_n = Lambda(get_H_n,output_shape=(k,))(dropout)
+
+    r_n = mLSTM(k,W_regularizer=l2(0.01), U_regularizer=l2(0.01),b_regularizer=l2(0.01),return_sequences=False)(dropout)
+
+
+    # Wr = Dense(k,W_regularizer=l2(0.01))(r_n) 
+    # Wh = Dense(k,W_regularizer=l2(0.01))(h_n)
+    # Sum_Wr_Wh = merge([Wr, Wh],mode='sum')
+    # h_star = Activation('tanh')(Sum_Wr_Wh)    
+
+    # out = Dense(3, activation='softmax')(h_star)
+    out = Dense(3, activation='softmax')(r_n)
+    model = Model(input = input_node ,output = out)
+    model.summary()
+
+#        graph = to_graph(model, show_shape=True)
+#        graph.write_png("model2.png")
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(options.lr),metrics=['accuracy'])
+    return model
+
+
+def compute_acc(X, Y, vocab, model, opts, filename=None):
+    scores=model.predict(X,batch_size=options.batch_size)
+    prediction=np.zeros(scores.shape)
+    for i in range(scores.shape[0]):
+        l=np.argmax(scores[i])
+        prediction[i][l]=1.0
+    assert np.array_equal(np.ones(prediction.shape[0]),np.sum(prediction,axis=1))
+    plabels=np.argmax(prediction,axis=1)
+    tlabels=np.argmax(Y,axis=1)
+    acc = accuracy(tlabels,plabels)
+
+    if filename!=None:
+        f = open(filename,'w')
+        for i in range(len(X)):
+            f.write(map_to_txt(X[i],vocab)+ " : "+ str(plabels[i])+ "\n")
+        f.close()
+
+    return acc
+
+d
