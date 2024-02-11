@@ -42,4 +42,51 @@ def get_params():
     print "xmaxlen", opts.xmaxlen
     print "ymaxlen", opts.ymaxlen
     print "no_padding", opts.no_padding
-    print "regu
+    print "regularization factor", opts.l2
+    print "dropout", opts.dropout
+    return opts
+
+def get_H_n(X):
+    ans=X[:, -1, :]  # get last element from time dim
+    return ans
+
+def get_H_hypo(X):
+    xmaxlen=K.params['xmaxlen']
+    return X[:, xmaxlen:, :]  # get elements L+1 to N
+
+def get_WH_Lpi(i):  # get element i
+    def get_X_i(X):
+        return X[:,i,:];
+    return get_X_i
+
+def get_Y(X):
+    xmaxlen=K.params['xmaxlen']
+    return X[:, :xmaxlen, :]  # get first xmaxlen elem from time dim
+
+def get_R(X):
+    Y = X[:,:,:-1]
+    alpha = X[:,:,-1]
+    tmp=K.permute_dimensions(Y,(0,)+(2,1))  # copied from permute layer, Now Y is (None,k,L) and alpha is always (None,L,1)
+    ans=K.T.batched_dot(tmp,alpha)
+    return ans
+
+def build_model(opts, verbose=False):
+
+    k = 2 * opts.lstm_units
+    L = opts.xmaxlen
+    N = opts.xmaxlen + opts.ymaxlen + 1  # for delim
+    print "x len", L, "total len", N
+
+    input_node = Input(shape=(N,), dtype='int32')
+
+    if opts.local:
+        InitWeights = np.load('VocabMat.npy')
+    else:   
+        InitWeights = np.load('/home/cse/btech/cs1130773/Code/VocabMat.npy')
+
+    emb = Embedding(InitWeights.shape[0],InitWeights.shape[1],input_length=N,weights=[InitWeights])(input_node)
+    d_emb = Dropout(0.1)(emb)
+
+    forward = LSTM(opts.lstm_units,return_sequences=True)(d_emb)
+    backward = LSTM(opts.lstm_units,return_sequences=True,go_backwards=True)(d_emb)
+    forward_backward = merge([forward,backward],m
