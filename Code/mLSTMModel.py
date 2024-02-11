@@ -181,4 +181,41 @@ class WeightSharing(Callback):
 
     def on_batch_end(self, batch, logs={}):
         weights = np.mean([self.find_layer_by_name(n).get_weights()[0] for n in self.shared],axis=0)
-        biases = np.mean([self.find_layer_by_name(n).get_weights()[1] for n in self.shared],a
+        biases = np.mean([self.find_layer_by_name(n).get_weights()[1] for n in self.shared],axis=0)
+        for n in self.shared:
+            self.find_layer_by_name(n).set_weights([weights, biases])
+
+class WeightSave(Callback):
+
+    def on_epoch_end(self,epochs, logs={}):
+        self.model.save_weights("/home/cse/btech/cs1130773/Code/Weights/ATRweights_att_rolledLSTM" +str(epochs) +  ".weights") 
+
+if __name__ == "__main__":
+    options=get_params()
+
+    if options.local:
+        train=[l.strip().split('\t') for l in open('../Data/tinyTrain.txt')]
+        dev=[l.strip().split('\t') for l in open('../Data/tinyVal.txt')]
+        test=[l.strip().split('\t') for l in open('../Data/tinyTest.txt')]
+    else:
+        train=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/train.txt')]
+        dev=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/dev.txt')]
+        test=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/test.txt')]
+
+    if options.local:
+        with open('Dictionary.txt','r') as inf:
+            vocab = eval(inf.read())
+    else:
+        with open('/home/cse/btech/cs1130773/Code/Dictionary.txt') as inf:
+            vocab = eval(inf.read())
+
+    print "vocab size: ",len(vocab)
+    X_train,Y_train,Z_train=load_data(train,vocab)
+    X_dev,Y_dev,Z_dev=load_data(dev,vocab)
+    X_test,Y_test,Z_test=load_data(test,vocab)
+   
+    params={'xmaxlen':options.xmaxlen}
+    setattr(K,'params',params)
+
+    config_str = getConfig(options)
+    MODEL_ARCH = "/home/ee/btech/ee1130798/Code/M
