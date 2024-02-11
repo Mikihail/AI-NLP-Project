@@ -133,4 +133,52 @@ def compute_acc(X, Y, vocab, model, opts, filename=None):
 
     return acc
 
-d
+def getConfig(opts):
+    conf=[opts.xmaxlen,
+          opts.ymaxlen,
+          opts.batch_size,
+          opts.lr,
+          opts.lstm_units,
+          opts.epochs]
+    if opts.no_padding:
+        conf.append("no-pad")
+    return "_".join(map(lambda x: str(x), conf))
+
+def save_model(model,wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        yaml_string = model.to_yaml()
+        open(archpath, 'w').write(yaml_string)
+    else:
+        with open(archpath, 'w') as f:
+            f.write(model.to_json())
+    model.save_weights(wtpath)
+
+
+def load_model(wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        model = model_from_yaml(open(archpath).read())
+    else:
+        with open(archpath) as f:
+            model = model_from_json(f.read())
+    model.load_weights(wtpath)
+    return model
+
+
+def concat_in_out(X,Y,vocab):
+    numex = X.shape[0] # num examples
+    glue=vocab["delimiter"]*np.ones(numex).reshape(numex,1)
+    inp_train = np.concatenate((X,glue,Y),axis=1)
+    return inp_train
+
+class WeightSharing(Callback):
+    def __init__(self, shared):
+        self.shared = shared
+
+    def find_layer_by_name(self, name):
+        for l in self.model.layers:
+            if l.name == name:
+                return l
+
+    def on_batch_end(self, batch, logs={}):
+        weights = np.mean([self.find_layer_by_name(n).get_weights()[0] for n in self.shared],axis=0)
+        biases = np.mean([self.find_layer_by_name(n).get_weights()[1] for n in self.shared],a
