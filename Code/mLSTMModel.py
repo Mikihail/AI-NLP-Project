@@ -218,4 +218,28 @@ if __name__ == "__main__":
     setattr(K,'params',params)
 
     config_str = getConfig(options)
-    MODEL_ARCH = "/home/ee/btech/ee1130798/Code/M
+    MODEL_ARCH = "/home/ee/btech/ee1130798/Code/Models/ATRarch_att" + config_str + ".yaml"
+    MODEL_WGHT = "/home/ee/btech/ee1130798/Code/Models/ATRweights_att" + config_str + ".weights"
+#    MODEL_ARCH = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/Models/GloveEmbd/arch_att" + config_str + ".yaml"
+#    MODEL_WGHT = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/Models/GloveEmbd/weights_att" + config_str + ".weights"
+   
+    XMAXLEN=options.xmaxlen
+    YMAXLEN=options.ymaxlen
+    X_train = pad_sequences(X_train, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_dev = pad_sequences(X_dev, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_test = pad_sequences(X_test, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    Y_train = pad_sequences(Y_train, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_dev = pad_sequences(Y_dev, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_test = pad_sequences(Y_test, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+   
+    net_train=concat_in_out(X_train,Y_train,vocab)
+    net_dev=concat_in_out(X_dev,Y_dev,vocab)
+    net_test=concat_in_out(X_test,Y_test,vocab)
+
+    Z_train=to_categorical(Z_train, nb_classes=3)
+    Z_dev=to_categorical(Z_dev, nb_classes=3)
+    Z_test=to_categorical(Z_test, nb_classes=3)
+
+    print X_train.shape,Y_train.shape,net_train.shape
+    print map_to_txt(net_train[0],vocab),Z_train[0]
+    prin
