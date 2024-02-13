@@ -310,4 +310,4 @@ if __name__ == "__main__":
 #        path = "/home/ee/btech/ee1130798/Code/ATR_Test_Predictions"+ config_str +".txt"
 #        test_acc=compute_acc(net_test, Z_test, vocab, model, options, path)
 
-#        save_model(model,MODEL_WGHT,MODEL
+#        save_model(model,MODEL_WGHT,MODEL_ARCH)
