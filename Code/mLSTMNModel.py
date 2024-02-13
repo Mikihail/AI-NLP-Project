@@ -69,4 +69,42 @@ def get_R(X):
     ans=K.T.batched_dot(tmp,alpha)
     return ans
 
-def build_model(opts, verbose=F
+def build_model(opts, verbose=False):
+
+    k = opts.lstm_units
+    L = opts.xmaxlen
+    N = opts.xmaxlen + opts.ymaxlen + 1  # for delim
+    print "x len", L, "total len", N
+
+    input_node = Input(shape=(N,), dtype='int32')
+
+    if opts.local:
+        InitWeights = np.load('VocabMat.npy')
+    else:   
+        InitWeights = np.load('/home/cse/btech/cs1130773/Code/VocabMat.npy')
+
+    emb = Embedding(InitWeights.shape[0],InitWeights.shape[1],input_length=N,weights=[InitWeights])(input_node)
+    d_emb = Dropout(0.1)(emb)
+
+    premise = Lambda(get_Y,output_shape=(L, 300))(d_emb)
+    hypothesis = Lambda(get_H_hypo, output_shape=(N-L, 300))(d_emb)
+
+    Y = LSTMN(opts.lstm_units,return_sequences=True)(premise)
+
+    h_hypo = LSTMN(opts.lstm_units,return_sequences=True)(hypothesis)
+
+    WY = TimeDistributed(Dense(k,W_regularizer=l2(0.01)))(Y)
+    Wh_hypo = TimeDistributed(Dense(k,W_regularizer=l2(0.01)))(h_hypo)
+
+    # GET R1
+    f = get_WH_Lpi(0)
+    Wh_lp = [Lambda(f, output_shape=(k,))(Wh_hypo)]
+    Wh_lp_cross_e = [RepeatVector(L)(Wh_lp[0])]
+
+    Sum_Wh_lp_cross_e_WY = [merge([Wh_lp_cross_e[0], WY],mode='sum')]
+    M = [Activation('tanh')(Sum_Wh_lp_cross_e_WY[0])]    
+
+#    alpha_TimeDistributedDense_Layer = TimeDistributed(Dense(1,activation='softmax'))
+    Distributed_Dense_init_weight = ((2.0/np.sqrt(k)) * np.random.rand(k,1)) - (1.0 / np.sqrt(k))
+    Distributed_Dense_init_bias = ((2.0) * np.random.rand(1,)) - (1.0)
+    alpha = [TimeDistributed(Dense(1,activation='softmax', weights
