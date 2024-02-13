@@ -107,4 +107,30 @@ def build_model(opts, verbose=False):
 #    alpha_TimeDistributedDense_Layer = TimeDistributed(Dense(1,activation='softmax'))
     Distributed_Dense_init_weight = ((2.0/np.sqrt(k)) * np.random.rand(k,1)) - (1.0 / np.sqrt(k))
     Distributed_Dense_init_bias = ((2.0) * np.random.rand(1,)) - (1.0)
-    alpha = [TimeDistributed(Dense(1,activation='softmax', weights
+    alpha = [TimeDistributed(Dense(1,activation='softmax', weights=[Distributed_Dense_init_weight, Distributed_Dense_init_bias]), name='alpha1')(M[0])]
+
+    Join_Y_alpha = [merge([Y, alpha[0]],mode='concat',concat_axis=2)]    
+    _r = [Lambda(get_R, output_shape=(k,1))(Join_Y_alpha[0])]
+    r = [Reshape((k,))(_r[0])]
+
+    r_t_h_t = [Reshape((1,2*k))(merge([r[0], Wh_lp[0]], mode='concat', concat_axis=1))]
+
+    concat_r_t_h_t = [r_t_h_t[0]]
+
+
+    mLSTM_init_weight = [((2.0/np.sqrt(k)) * np.random.rand(2*k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0/np.sqrt(k)) * np.random.rand(k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0) * np.random.rand(k,)) - (1.0),
+                        ((2.0/np.sqrt(k)) * np.random.rand(2*k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0/np.sqrt(k)) * np.random.rand(k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0) * np.random.rand(k,)) - (1.0),
+                        ((2.0/np.sqrt(k)) * np.random.rand(2*k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0/np.sqrt(k)) * np.random.rand(k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0) * np.random.rand(k,)) - (1.0),
+                        ((2.0/np.sqrt(k)) * np.random.rand(2*k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0/np.sqrt(k)) * np.random.rand(k,k)) - (1.0 / np.sqrt(k)),
+                        ((2.0) * np.random.rand(k,)) - (1.0)]
+
+    h_a = [LSTM(k, name='mLSTM_1', weights=mLSTM_init_weight)(r_t_h_t[0])]
+
+    Wr_init_weight = 2*(1/np.sqrt(k))*np.ran
