@@ -133,4 +133,31 @@ def build_model(opts, verbose=False):
 
     h_a = [LSTM(k, name='mLSTM_1', weights=mLSTM_init_weight)(r_t_h_t[0])]
 
-    Wr_init_weight = 2*(1/np.sqrt(k))*np.ran
+    Wr_init_weight = 2*(1/np.sqrt(k))*np.random.rand(k,k) - (1/np.sqrt(k))
+    Wr_init_bias = 2*(1/np.sqrt(k))*np.random.rand(k,) - (1/np.sqrt(k))
+    Wh_a = [Dense(k,W_regularizer=l2(0.01), name='Wh_a1', weights=[Wr_init_weight, Wr_init_bias])(h_a[0])]
+    Wh_a_cross_e = [RepeatVector(L)(Wh_a[0])]
+
+    # GET R2, R3, .. R_N
+    for i in range(2,N-L+1):
+        f = get_WH_Lpi(i-1)
+        Wh_lp.append( Lambda(f, output_shape=(k,))(Wh_hypo) )
+        Wh_lp_cross_e.append( RepeatVector(L)(Wh_lp[i-1]) )
+
+        Sum_Wh_lp_cross_e_WY.append( merge([Wh_lp_cross_e[i-1], WY, Wh_a_cross_e[i-2]],mode='sum') )
+        M.append( Activation('tanh')(  Sum_Wh_lp_cross_e_WY[i-1] ) )
+        alpha.append( TimeDistributed(Dense(1,activation='softmax'), name='alpha'+str(i))(M[i-1]) )
+
+        Join_Y_alpha.append( merge([Y, alpha[i-1]],mode='concat',concat_axis=2) )
+        _r.append( Lambda(get_R, output_shape=(k,1))(Join_Y_alpha[i-1]) )
+        r.append( Reshape((k,))(_r[i-1]) )
+
+        r_t_h_t.append( Reshape((1,2*k))(merge([r[i-1], Wh_lp[i-1]], mode='concat', concat_axis=1)) )
+
+        concat_r_t_h_t.append( merge([concat_r_t_h_t[i-2], r_t_h_t[i-1]], mode='concat', concat_axis=1) )
+
+        h_a.append( LSTM(k, name='mLSTM_'+str(i), weights=mLSTM_init_weight)(concat_r_t_h_t[i-1]) )
+
+        if i != (N-L):
+#            Tan_Wr.append( Dense(k,W_regularizer=l2(0.01),activation='tanh', name='Tan_Wr'+str(i))(r[i-1]) )
+            Wh_a.append( Dense(k,W_regularizer=l2(0
