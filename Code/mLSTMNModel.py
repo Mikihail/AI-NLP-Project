@@ -160,4 +160,48 @@ def build_model(opts, verbose=False):
 
         if i != (N-L):
 #            Tan_Wr.append( Dense(k,W_regularizer=l2(0.01),activation='tanh', name='Tan_Wr'+str(i))(r[i-1]) )
-            Wh_a.append( Dense(k,W_regularizer=l2(0
+            Wh_a.append( Dense(k,W_regularizer=l2(0.01), name='Wh_a'+str(i), weights=[Wr_init_weight, Wr_init_bias])(h_a[i-1]) )
+            Wh_a_cross_e.append( RepeatVector(L)(Wh_a[i-1]) )
+
+    out = Dense(3, activation='softmax')(h_a[N-L-1])
+    model = Model(input = input_node ,output = out)
+    model.summary()
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(options.lr), metrics=['accuracy'])
+    return model
+
+
+def compute_acc(X, Y, vocab, model, opts, filename=None):
+    scores=model.predict(X,batch_size=options.batch_size)
+    prediction=np.zeros(scores.shape)
+    for i in range(scores.shape[0]):
+        l=np.argmax(scores[i])
+        prediction[i][l]=1.0
+    assert np.array_equal(np.ones(prediction.shape[0]),np.sum(prediction,axis=1))
+    plabels=np.argmax(prediction,axis=1)
+    tlabels=np.argmax(Y,axis=1)
+    acc = accuracy(tlabels,plabels)
+
+    if filename!=None:
+        f = open(filename,'w')
+        for i in range(len(X)):
+            f.write(map_to_txt(X[i],vocab)+ " : "+ str(plabels[i])+ "\n")
+        f.close()
+
+    return acc
+
+def getConfig(opts):
+    conf=[opts.xmaxlen,
+          opts.ymaxlen,
+          opts.batch_size,
+          opts.lr,
+          opts.lstm_units,
+          opts.epochs]
+    if opts.no_padding:
+        conf.append("no-pad")
+    return "_".join(map(lambda x: str(x), conf))
+
+def save_model(model,wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        yaml_string = model.to_yaml()
+        open(a
