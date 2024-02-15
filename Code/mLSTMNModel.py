@@ -204,4 +204,46 @@ def getConfig(opts):
 def save_model(model,wtpath,archpath,mode='yaml'):
     if mode=='yaml':
         yaml_string = model.to_yaml()
-        open(a
+        open(archpath, 'w').write(yaml_string)
+    else:
+        with open(archpath, 'w') as f:
+            f.write(model.to_json())
+    model.save_weights(wtpath)
+
+
+def load_model(wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        model = model_from_yaml(open(archpath).read())
+    else:
+        with open(archpath) as f:
+            model = model_from_json(f.read())
+    model.load_weights(wtpath)
+    return model
+
+
+def concat_in_out(X,Y,vocab):
+    numex = X.shape[0] # num examples
+    glue=vocab["delimiter"]*np.ones(numex).reshape(numex,1)
+    inp_train = np.concatenate((X,glue,Y),axis=1)
+    return inp_train
+
+class WeightSharing(Callback):
+    def __init__(self, shared):
+        self.shared = shared
+
+    def find_layer_by_name(self, name):
+        for l in self.model.layers:
+            if l.name == name:
+                return l
+
+    def on_batch_end(self, batch, logs={}):
+        avg_weights = []
+        for i in xrange(len(self.find_layer_by_name(self.shared[0]).get_weights())):
+            weights = np.mean([self.find_layer_by_name(n).get_weights()[i] for n in self.shared[-5:]],axis=0)
+            avg_weights.append(weights)
+        for n in self.shared:
+            self.find_layer_by_name(n).set_weights(avg_weights)
+
+class WeightSave(Callback):
+    def on_epoch_end(self,epochs, logs={}):
+        self.model.save_weights("/home/cse/btech/cs1130773/Code/WeightsShallowFusionMLSTM/weight_on_epoch_" +str(epochs) 
