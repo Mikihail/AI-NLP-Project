@@ -30,4 +30,41 @@ def get_params():
     parser.add_argument('-ymaxlen', action="store", default=20, dest="ymaxlen", type=int)
     parser.add_argument('-nopad', action="store", default=False, dest="no_padding", type=bool)
     parser.add_argument('-lr', action="store", default=0.003, dest="lr", type=float)
-    parser.add_a
+    parser.add_argument('-load', action="store", default=False, dest="load_save", type=bool)
+    parser.add_argument('-verbose', action="store", default=False, dest="verbose", type=bool)
+    parser.add_argument('-l2', action="store", default=0.0003, dest="l2", type=float)
+    parser.add_argument('-dropout', action="store", default=0.1, dest="dropout", type=float)
+    parser.add_argument('-local', action="store", default=False, dest="local", type=bool)
+    opts = parser.parse_args(sys.argv[1:])
+    print "lstm_units", opts.lstm_units
+    print "epochs", opts.epochs
+    print "batch_size", opts.batch_size
+    print "xmaxlen", opts.xmaxlen
+    print "ymaxlen", opts.ymaxlen
+    print "no_padding", opts.no_padding
+    print "regularization factor", opts.l2
+    print "dropout", opts.dropout
+    return opts
+
+def get_H_n(X):
+    ans=X[:, -1, :]  # get last element from time dim
+    return ans
+
+def get_H_hypo(X):
+    xmaxlen=K.params['xmaxlen']
+    return X[:, xmaxlen:, :]  # get elements L+1 to N
+
+def get_WH_Lpi(i):  # get element i
+    def get_X_i(X):
+        return X[:,i,:];
+    return get_X_i
+
+def get_Y(X):
+    xmaxlen=K.params['xmaxlen']
+    return X[:, :xmaxlen, :]  # get first xmaxlen elem from time dim
+
+def get_R(X):
+    Y = X[:,:,:-1]
+    alpha = X[:,:,-1]
+    tmp=K.permute_dimensions(Y,(0,2,1))  # copied from permute layer, Now Y is (None,k,L) and alpha is always (None,L,1)
+    ans=K.T.bat
