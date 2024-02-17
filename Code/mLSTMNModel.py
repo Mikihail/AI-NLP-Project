@@ -345,4 +345,30 @@ if __name__ == "__main__":
         group1 = []
         group2 = []
         group3 = []
-    
+        for i in range(1,options.ymaxlen+1):
+            group1.append('mLSTM_'+str(i))
+            group2.append('Wh_a'+str(i))
+            group3.append('alpha'+str(i))
+        group3.append('alpha'+str(options.ymaxlen+1))
+        group1.append('mLSTM_'+str(options.ymaxlen+1))
+
+        save_weights = WeightSave()
+        
+        history = model.fit(x=net_train, 
+                            y=Z_train,
+                        batch_size=options.batch_size,
+                        nb_epoch=options.epochs,
+                        validation_data=dev_dict,
+                        callbacks = [WeightSharing(group1), WeightSharing(group2), WeightSharing(group3), save_weights])
+#                       )
+
+        train_acc=compute_acc(net_train, Z_train, vocab, model, options)
+        dev_acc=compute_acc(net_dev, Z_dev, vocab, model, options)
+        test_acc=compute_acc(net_test, Z_test, vocab, model, options)
+        print "Training Accuracy: ", train_acc
+        print "Dev Accuracy: ", dev_acc
+        print "Testing Accuracy: ", test_acc
+#        path = "/home/ee/btech/ee1130798/Code/ATR_Test_Predictions"+ config_str +".txt"
+#        test_acc=compute_acc(net_test, Z_test, vocab, model, options, path)
+
+#        save_model(model,MODEL_WGHT,MODEL_ARCH)
