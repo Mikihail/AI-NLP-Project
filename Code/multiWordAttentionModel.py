@@ -67,4 +67,41 @@ def get_R(X):
     Y = X[:,:,:-1]
     alpha = X[:,:,-1]
     tmp=K.permute_dimensions(Y,(0,2,1))  # copied from permute layer, Now Y is (None,k,L) and alpha is always (None,L,1)
-    ans=K.T.bat
+    ans=K.T.batched_dot(tmp,alpha)
+    return ans
+
+def build_model(opts, verbose=False):
+
+    k = 2 * opts.lstm_units
+    L = opts.xmaxlen
+    N = opts.xmaxlen + opts.ymaxlen + 1  # for delim
+    print "x len", L, "total len", N
+
+    input_node = Input(shape=(N,), dtype='int32', name="input_node")
+
+    if opts.local:
+        InitWeights = np.load('VocabMat.npy')
+    else:   
+        InitWeights = np.load('/home/cse/btech/cs1130773/Code/VocabMat.npy')
+
+    emb = Embedding(InitWeights.shape[0],InitWeights.shape[1],input_length=N,weights=[InitWeights],name="Embedding")(input_node)
+    d_emb = Dropout(0.1, name="dropout_embedding")(emb)
+    
+    forward = LSTM(opts.lstm_units,return_sequences=True, name="forward")(d_emb)
+    backward = LSTM(opts.lstm_units,return_sequences=True,go_backwards=True, name="backward")(d_emb)
+    forward_backward = merge([forward,backward],mode='concat',concat_axis=2, name="forward_backward")
+    dropout = Dropout(0.1, name="dropout_fb")(forward_backward)
+
+    h_n = Lambda(get_H_n,output_shape=(k,),name="h_n")(dropout)
+
+    Y = Lambda(get_Y,output_shape=(L, k),name="Y")(dropout)
+    WY = TimeDistributed(Dense(k,W_regularizer=l2(0.01),name="WY"))(Y)
+
+    ###########
+    # "dropout" layer contains all h vectors from h_1 to h_N
+
+    h_hypo = Lambda(get_H_hypo, output_shape=(N-L, k),name="h_hypo")(dropout)
+    Wh_hypo = TimeDistributed(Dense(k,W_regularizer=l2(0.01),name="Wh_hypo"))(h_hypo)
+
+    # GET R1
+    f = get
