@@ -187,4 +187,57 @@ def compute_acc(X, Y, vocab, model, opts, filename=None):
         l=np.argmax(scores[i])
         prediction[i][l]=1.0
     assert np.array_equal(np.ones(prediction.shape[0]),np.sum(prediction,axis=1))
-    plabels=n
+    plabels=np.argmax(prediction,axis=1)
+    tlabels=np.argmax(Y,axis=1)
+    acc = accuracy(tlabels,plabels)
+
+    if filename!=None:
+        f = open(filename,'w')
+        for i in range(len(X)):
+            f.write(map_to_txt(X[i],vocab)+ " : "+ str(plabels[i])+ "\n")
+        f.close()
+
+    return acc
+
+def getConfig(opts):
+    conf=[opts.xmaxlen,
+          opts.ymaxlen,
+          opts.batch_size,
+          opts.lr,
+          opts.lstm_units,
+          opts.epochs]
+    if opts.no_padding:
+        conf.append("no-pad")
+    return "_".join(map(lambda x: str(x), conf))
+
+def save_model(model,wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        yaml_string = model.to_yaml()
+        open(archpath, 'w').write(yaml_string)
+    else:
+        with open(archpath, 'w') as f:
+            f.write(model.to_json())
+    model.save_weights(wtpath)
+
+
+def load_model(wtpath,archpath,mode='yaml'):
+    if mode=='yaml':
+        model = model_from_yaml(open(archpath).read())
+    else:
+        with open(archpath) as f:
+            model = model_from_json(f.read())
+    model.load_weights(wtpath)
+    return model
+
+
+def concat_in_out(X,Y,vocab):
+    numex = X.shape[0] # num examples
+    glue=vocab["delimiter"]*np.ones(numex).reshape(numex,1)
+    inp_train = np.concatenate((X,glue,Y),axis=1)
+    return inp_train
+
+class WeightSharing(Callback):
+    def __init__(self, shared):
+        self.shared = shared
+
+    d
