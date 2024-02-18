@@ -271,4 +271,33 @@ if __name__ == "__main__":
 
     if options.local:
         train=[l.strip().split('\t') for l in open('Train.txt')]
-        dev=[l.strip().split('\t') for l in open
+        dev=[l.strip().split('\t') for l in open('Dev.txt')]
+        test=[l.strip().split('\t') for l in open('Test.txt')]
+    else:
+        train=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/train.txt')]
+        dev=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/dev.txt')]
+        test=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/test.txt')]
+
+    if options.local:
+        with open('Dictionary.txt','r') as inf:
+            vocab = eval(inf.read())
+    else:
+        with open('/home/cse/btech/cs1130773/Code/Dictionary.txt') as inf:
+            vocab = eval(inf.read())
+
+    print "vocab size: ",len(vocab)
+    X_train,Y_train,Z_train=load_data(train,vocab)
+    X_dev,Y_dev,Z_dev=load_data(dev,vocab)
+    X_test,Y_test,Z_test=load_data(test,vocab)
+   
+    params={'xmaxlen':options.xmaxlen}
+    setattr(K,'params',params)
+
+    config_str = getConfig(options)
+#    MODEL_ARCH = "/home/ee/btech/ee1130798/Code/Models/ATRarch_att" + config_str + ".yaml"
+#    MODEL_WGHT = "/home/ee/btech/ee1130798/Code/Models/ATRweights_att" + config_str + ".weights"
+#    MODEL_ARCH = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/Models/GloveEmbd/arch_att" + config_str + ".yaml"
+    MODEL_WGHT = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/WeightsMultiAttention/weight_on_epoch_6.weights"
+   
+    XMAXLEN=options.xmaxlen
+    YMAXLEN=options.
