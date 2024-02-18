@@ -240,4 +240,35 @@ class WeightSharing(Callback):
     def __init__(self, shared):
         self.shared = shared
 
-    d
+    def find_layer_by_name(self, name):
+        for l in self.model.layers:
+            if l.name == name:
+                return l
+
+    def on_batch_end(self, batch, logs={}):
+        weights = np.mean([self.find_layer_by_name(n).get_weights()[0] for n in self.shared],axis=0)
+        biases = np.mean([self.find_layer_by_name(n).get_weights()[1] for n in self.shared],axis=0)
+        for n in self.shared:
+            self.find_layer_by_name(n).set_weights([weights, biases])
+
+class WeightSave(Callback):
+    def on_epoch_end(self,epochs, logs={}):
+#        self.model.save_weights("/Users/Shantanu/Desktop/weight_on_epoch_" +str(epochs) +  ".weights") 
+        self.model.save_weights("/home/cse/btech/cs1130773/Code/WeightsMultiAttention/BEST_weight_on_epoch_" +str(epochs) +  ".weights") 
+
+def RTE(premise, hypothesis,vocab,model):
+    labels = {0:'neutral',1:'entailment',2:'contradiction'}
+    p = map_to_idx(tokenize(premise),vocab)
+    h = map_to_idx(tokenize(hypothesis),vocab)
+    p = pad_sequences([p], maxlen=options.xmaxlen,value=vocab["pad_tok"],padding='pre')
+    h = pad_sequences([h], maxlen=options.ymaxlen,value=vocab["pad_tok"],padding='post')
+    sentence = concat_in_out(p,h,vocab)
+    scores = model.predict(sentence,batch_size=1)
+    return labels[np.argmax(scores)]
+
+if __name__ == "__main__":
+    options=get_params()
+
+    if options.local:
+        train=[l.strip().split('\t') for l in open('Train.txt')]
+        dev=[l.strip().split('\t') for l in open
