@@ -130,4 +130,29 @@ def build_model(opts, verbose=False):
     star_r = []
     # GET R2, R3, .. R_N
     for i in range(2,N-L+1):
-        f = get_W
+        f = get_WH_Lpi(i-1)
+        Wh_lp.append( Lambda(f, output_shape=(k,))(Wh_hypo) )
+        Wh_lp_cross_e.append( RepeatVector(L)(Wh_lp[i-1]) )
+
+        Sum_Wh_lp_cross_e_WY.append( merge([Wh_lp_cross_e[i-1], WY, Wr_cross_e[i-2]],mode='sum') )
+        M.append( Activation('tanh')(  Sum_Wh_lp_cross_e_WY[i-1] ) )
+        alpha.append( Reshape((L, 1), input_shape=(L,))(Activation("softmax")(Flatten()(TimeDistributed(Dense(1, weights=[Distributed_Dense_init_weight, Distributed_Dense_init_bias]), name='alpha'+str(i))(M[i-1])))) )
+
+        Join_Y_alpha.append( merge([Y, alpha[i-1]],mode='concat',concat_axis=2) )
+        star_r.append( Lambda(get_R, output_shape=(k,),name="r"+str(i))(Join_Y_alpha[i-1]) )
+        r.append( merge([star_r[i-2], Tan_Wr[i-2]], mode='sum') )
+
+        if i != (N-L):
+            Tan_Wr.append( Dense(k,W_regularizer=l2(0.01),activation='tanh', name='Tan_Wr'+str(i),weights=[Tan_Wr_init_weight, Tan_Wr_init_bias])(r[i-1]) )
+            Wr.append( Dense(k,W_regularizer=l2(0.01), name='Wr'+str(i),weights=[Wr_init_weight, Wr_init_bias])(r[i-1]) )
+            Wr_cross_e.append( RepeatVector(L)(Wr[i-1]) )
+
+
+    Wr = Dense(k,W_regularizer=l2(0.01))(r[N-L-1]) 
+    Wh = Dense(k,W_regularizer=l2(0.01))(h_n)
+    Sum_Wr_Wh = merge([Wr, Wh],mode='sum')
+    h_star = Activation('tanh')(Sum_Wr_Wh)    
+
+    out = Dense(3, activation='softmax')(h_star)
+    model = Model(input = input_node ,output = out)
+    model.s
