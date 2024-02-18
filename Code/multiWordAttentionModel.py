@@ -104,4 +104,30 @@ def build_model(opts, verbose=False):
     Wh_hypo = TimeDistributed(Dense(k,W_regularizer=l2(0.01),name="Wh_hypo"))(h_hypo)
 
     # GET R1
-    f = get
+    f = get_WH_Lpi(0)
+    Wh_lp = [Lambda(f, output_shape=(k,))(Wh_hypo)]
+    Wh_lp_cross_e = [RepeatVector(L)(Wh_lp[0])]
+
+    Sum_Wh_lp_cross_e_WY = [merge([Wh_lp_cross_e[0], WY],mode='sum')]
+    M = [Activation('tanh')(Sum_Wh_lp_cross_e_WY[0])]    
+
+    Distributed_Dense_init_weight = ((2.0/np.sqrt(k)) * np.random.rand(k,1)) - (1.0 / np.sqrt(k))
+    Distributed_Dense_init_bias = ((2.0) * np.random.rand(1,)) - (1.0)
+    alpha = [Reshape((L, 1), input_shape=(L,))(Activation("softmax")(Flatten()(TimeDistributed(Dense(1, weights=[Distributed_Dense_init_weight, Distributed_Dense_init_bias]), name='alpha1')(M[0]))))]
+
+    Join_Y_alpha = [merge([Y, alpha[0]],mode='concat',concat_axis=2)]    
+    r = [ Lambda(get_R, output_shape=(k,),name="r1")(Join_Y_alpha[0]) ]
+    
+    Tan_Wr_init_weight = 2*(1/np.sqrt(k))*np.random.rand(k,k) - (1/np.sqrt(k))
+    Tan_Wr_init_bias = 2*(1/np.sqrt(k))*np.random.rand(k,) - (1/np.sqrt(k))
+    Tan_Wr = [Dense(k,W_regularizer=l2(0.01),activation='tanh', name='Tan_Wr1', weights=[Tan_Wr_init_weight, Tan_Wr_init_bias])(r[0])]
+
+    Wr_init_weight = 2*(1/np.sqrt(k))*np.random.rand(k,k) - (1/np.sqrt(k))
+    Wr_init_bias = 2*(1/np.sqrt(k))*np.random.rand(k,) - (1/np.sqrt(k))
+    Wr = [Dense(k,W_regularizer=l2(0.01), name='Wr1', weights=[Wr_init_weight, Wr_init_bias])(r[0])]
+    Wr_cross_e = [RepeatVector(L,name="Wr_cross_e")(Wr[0])]
+
+    star_r = []
+    # GET R2, R3, .. R_N
+    for i in range(2,N-L+1):
+        f = get_W
