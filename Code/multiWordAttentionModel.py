@@ -155,4 +155,36 @@ def build_model(opts, verbose=False):
 
     out = Dense(3, activation='softmax')(h_star)
     model = Model(input = input_node ,output = out)
-    model.s
+    model.summary()
+
+
+    model.compile(loss='categorical_crossentropy', optimizer=Adam(options.lr), metrics=['accuracy'])
+
+#    MODEL_WGHT = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/WeightsMultiAttention/weight_on_epoch_6.weights"
+#    MODEL_WGHT = "/Users/Shantanu/Desktop/weight_on_epoch_4.weights"
+#    model.load_weights(MODEL_WGHT)
+
+#    alphas_function = K.function([model.layers[0].input, K.learning_phase()], [model.layers[17].output])
+#    premise = 'A man rubbing his hands on some type of metal object'
+#    hypothesis = 'The man is rubbing a tree.'
+#    labels = {0:'neutral',1:'entailment',2:'contradiction'}
+#    p = map_to_idx(tokenize(premise),vocab)
+#    h = map_to_idx(tokenize(hypothesis),vocab)
+#    p = pad_sequences([p], maxlen=options.xmaxlen,value=vocab["pad_tok"],padding='pre')
+#    h = pad_sequences([h], maxlen=options.ymaxlen,value=vocab["pad_tok"],padding='post')
+#    sentence = concat_in_out(p,h,vocab)
+#    scores = alphas_function([net_test[0:1,:],1])[0]
+#    print scores
+#    print scores.shape
+
+    return model
+
+
+def compute_acc(X, Y, vocab, model, opts, filename=None):
+    scores=model.predict(X,batch_size=options.batch_size)
+    prediction=np.zeros(scores.shape)
+    for i in range(scores.shape[0]):
+        l=np.argmax(scores[i])
+        prediction[i][l]=1.0
+    assert np.array_equal(np.ones(prediction.shape[0]),np.sum(prediction,axis=1))
+    plabels=n
