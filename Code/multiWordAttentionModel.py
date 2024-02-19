@@ -329,4 +329,41 @@ if __name__ == "__main__":
 #        for sample in data:
 #            rep = np.empty((300,1))
 #            for word in sample:
-#                rep = np.hstack((rep
+#                rep = np.hstack((rep, RMatrix[word].reshape(300,1)))
+#            rep = rep[:,1:]
+#            X = np.dstack((X, rep))
+#        X = X.swapaxes(0,2)
+#        return X[1:,:,:]
+
+#    def generate_GloVe_embedding_samples(net_train, Z_train, batch_size):
+#        RMatrix = np.load('VocabMat.npy')
+#        num_batches = len(net_train)/batch_size
+#        while 1:
+#            for idx in xrange(0, num_batches*batch_size, batch_size):
+#                X_train = data2vec(net_train[idx:idx+batch_size], RMatrix)
+#                yield {'input': X_train, 'output': Z_train}
+
+    print options.load_save
+    print os.path.exists(MODEL_WGHT)
+
+    if options.load_save and os.path.exists(MODEL_WGHT):
+        print("Loading pre-trained model from ", MODEL_WGHT)
+        model = build_model(options)
+#        model.load_weights(MODEL_WGHT)
+#        print RTE('A man rubbing his hands on some type of metal object','The man is rubbing a tree.',vocab,model)
+        
+
+#        train_acc=compute_acc(net_train, Z_train, vocab, model, options)
+#        dev_acc=compute_acc(net_dev, Z_dev, vocab, model, options)
+#        test_acc=compute_acc(net_test, Z_test, vocab, model, options, "Test_Predictions.txt")
+#        print "Training Accuracy: ", train_acc
+#        print "Dev Accuracy: ", dev_acc
+#        print "Testing Accuracy: ", test_acc
+
+    else:
+        print 'Build model...'
+        model = build_model(options)
+
+        print 'Training New Model'
+        group1 = []
+  
