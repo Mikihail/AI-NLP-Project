@@ -227,3 +227,140 @@ def concat_in_out(X,Y,vocab):
 class WeightSharing(Callback):
     def __init__(self, shared):
         self.shared = shared
+
+    def find_layer_by_name(self, name):
+        for l in self.model.layers:
+            if l.name == name:
+                return l
+
+    def on_batch_end(self, batch, logs={}):
+        weights = np.mean([self.find_layer_by_name(n).get_weights()[0] for n in self.shared],axis=0)
+        biases = np.mean([self.find_layer_by_name(n).get_weights()[1] for n in self.shared],axis=0)
+        for n in self.shared:
+            self.find_layer_by_name(n).set_weights([weights, biases])
+
+class WeightSave(Callback):
+    def on_epoch_end(self,epochs, logs={}):
+        self.model.save_weights("/home/cse/btech/cs1130773/Code/WeightsMultiWordTapeAttention/weight_on_epoch_" +str(epochs) +  ".weights") 
+
+if __name__ == "__main__":
+    options=get_params()
+
+    if options.local:
+        train=[l.strip().split('\t') for l in open('../Data/tinyTrain.txt')]
+        dev=[l.strip().split('\t') for l in open('../Data/tinyVal.txt')]
+        test=[l.strip().split('\t') for l in open('../Data/tinyTest.txt')]
+    else:
+        train=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/train.txt')]
+        dev=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/dev.txt')]
+        test=[l.strip().split('\t') for l in open('/home/cse/btech/cs1130773/Code/test.txt')]
+
+    if options.local:
+        with open('Dictionary.txt','r') as inf:
+            vocab = eval(inf.read())
+    else:
+        with open('/home/cse/btech/cs1130773/Code/Dictionary.txt') as inf:
+            vocab = eval(inf.read())
+
+    print "vocab size: ",len(vocab)
+    X_train,Y_train,Z_train=load_data(train,vocab)
+    X_dev,Y_dev,Z_dev=load_data(dev,vocab)
+    X_test,Y_test,Z_test=load_data(test,vocab)
+   
+    params={'xmaxlen':options.xmaxlen,'batch_size':options.batch_size}
+    setattr(K,'params',params)
+
+    config_str = getConfig(options)
+    MODEL_ARCH = "/home/ee/btech/ee1130798/Code/Models/ATRarch_att" + config_str + ".yaml"
+    MODEL_WGHT = "/home/ee/btech/ee1130798/Code/Models/ATRweights_att" + config_str + ".weights"
+#    MODEL_ARCH = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/Models/GloveEmbd/arch_att" + config_str + ".yaml"
+#    MODEL_WGHT = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/Models/GloveEmbd/weights_att" + config_str + ".weights"
+   
+    XMAXLEN=options.xmaxlen
+    YMAXLEN=options.ymaxlen
+    X_train = pad_sequences(X_train, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_dev = pad_sequences(X_dev, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_test = pad_sequences(X_test, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    Y_train = pad_sequences(Y_train, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_dev = pad_sequences(Y_dev, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_test = pad_sequences(Y_test, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+   
+    net_train=concat_in_out(X_train,Y_train,vocab)
+    net_dev=concat_in_out(X_dev,Y_dev,vocab)
+    net_test=concat_in_out(X_test,Y_test,vocab)
+
+    Z_train=to_categorical(Z_train, nb_classes=3)
+    Z_dev=to_categorical(Z_dev, nb_classes=3)
+    Z_test=to_categorical(Z_test, nb_classes=3)
+
+    print X_train.shape,Y_train.shape,net_train.shape
+    print map_to_txt(net_train[0],vocab),Z_train[0]
+    print map_to_txt(net_train[1],vocab),Z_train[1]
+
+    assert net_train[0][options.xmaxlen] == 1
+    train_dict = {'input': net_train, 'output': Z_train}
+    dev_dict = (net_dev, Z_dev)
+
+#    def data2vec(data, RMatrix):
+#        X = np.empty((300,len(data[0])))
+#        for sample in data:
+#            rep = np.empty((300,1))
+#            for word in sample:
+#                rep = np.hstack((rep, RMatrix[word].reshape(300,1)))
+#            rep = rep[:,1:]
+#            X = np.dstack((X, rep))
+#        X = X.swapaxes(0,2)
+#        return X[1:,:,:]
+
+#    def generate_GloVe_embedding_samples(net_train, Z_train, batch_size):
+#        RMatrix = np.load('VocabMat.npy')
+#        num_batches = len(net_train)/batch_size
+#        while 1:
+#            for idx in xrange(0, num_batches*batch_size, batch_size):
+#                X_train = data2vec(net_train[idx:idx+batch_size], RMatrix)
+#                yield {'input': X_train, 'output': Z_train}
+
+    if options.load_save and os.path.exists(MODEL_ARCH) and os.path.exists(MODEL_WGHT):
+        print("Loading pre-trained model from ", MODEL_WGHT)
+        model = build_model(options)
+        model.load_weights(MODEL_WGHT)
+
+        train_acc=compute_acc(net_train, Z_train, vocab, model, options)
+        dev_acc=compute_acc(net_dev, Z_dev, vocab, model, options)
+        test_acc=compute_acc(net_test, Z_test, vocab, model, options, "Test_Predictions.txt")
+        print "Training Accuracy: ", train_acc
+        print "Dev Accuracy: ", dev_acc
+        print "Testing Accuracy: ", test_acc
+
+    else:
+        print 'Build model...'
+        model = build_model(options)
+
+        print 'Training New Model'
+        group1 = []
+        group2 = []
+        group3 = []
+        for i in range(1,options.ymaxlen+1):
+            group1.append('Tan_Wr'+str(i))
+            group2.append('Wr'+str(i))
+            group3.append('alpha'+str(i))
+        group3.append('alpha'+str(options.ymaxlen+1))
+        save_weights = WeightSave()
+
+        history = model.fit(x=net_train, 
+                            y=Z_train,
+                        batch_size=options.batch_size,
+                        nb_epoch=options.epochs,
+                        validation_data=dev_dict,
+                        callbacks=[WeightSharing(group1), WeightSharing(group2), WeightSharing(group3), save_weights])
+
+        train_acc=compute_acc(net_train, Z_train, vocab, model, options)
+        dev_acc=compute_acc(net_dev, Z_dev, vocab, model, options)
+        test_acc=compute_acc(net_test, Z_test, vocab, model, options)
+        print "Training Accuracy: ", train_acc
+        print "Dev Accuracy: ", dev_acc
+        print "Testing Accuracy: ", test_acc
+#        path = "/home/ee/btech/ee1130798/Code/ATR_Test_Predictions"+ config_str +".txt"
+#        test_acc=compute_acc(net_test, Z_test, vocab, model, options, path)
+
+#        save_model(model,MODEL_WGHT,MODEL_ARCH)
