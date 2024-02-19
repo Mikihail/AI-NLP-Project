@@ -300,4 +300,33 @@ if __name__ == "__main__":
     MODEL_WGHT = "/Users/Shantanu/Documents/College/SemVI/COL772/Project/Code/WeightsMultiAttention/weight_on_epoch_6.weights"
    
     XMAXLEN=options.xmaxlen
-    YMAXLEN=options.
+    YMAXLEN=options.ymaxlen
+    X_train = pad_sequences(X_train, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_dev = pad_sequences(X_dev, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    X_test = pad_sequences(X_test, maxlen=XMAXLEN,value=vocab["pad_tok"],padding='pre')
+    Y_train = pad_sequences(Y_train, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_dev = pad_sequences(Y_dev, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+    Y_test = pad_sequences(Y_test, maxlen=YMAXLEN,value=vocab["pad_tok"],padding='post')
+   
+    net_train=concat_in_out(X_train,Y_train,vocab)
+    net_dev=concat_in_out(X_dev,Y_dev,vocab)
+    net_test=concat_in_out(X_test,Y_test,vocab)
+
+    Z_train=to_categorical(Z_train, nb_classes=3)
+    Z_dev=to_categorical(Z_dev, nb_classes=3)
+    Z_test=to_categorical(Z_test, nb_classes=3)
+
+    print X_train.shape,Y_train.shape,net_train.shape
+    print map_to_txt(net_train[0],vocab),Z_train[0]
+    print map_to_txt(net_train[1],vocab),Z_train[1]
+
+    assert net_train[0][options.xmaxlen] == 1
+    train_dict = {'input': net_train, 'output': Z_train}
+    dev_dict = (net_dev, Z_dev)
+
+#    def data2vec(data, RMatrix):
+#        X = np.empty((300,len(data[0])))
+#        for sample in data:
+#            rep = np.empty((300,1))
+#            for word in sample:
+#                rep = np.hstack((rep
